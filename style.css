@@ -1,0 +1,14 @@
+body {
+
+font-family: Arial;
+text-align: center;
+
+}
+
+canvas {
+
+width: 90%;
+max-width: 800px;
+margin: auto;
+
+}

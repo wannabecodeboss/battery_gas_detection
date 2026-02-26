@@ -12,12 +12,13 @@ databaseURL:
 
 firebase.initializeApp(firebaseConfig);
 
+
 const db = firebase.database();
 
 const readingsRef = db.ref("readings");
 
 
-// Chart setup
+// Chart
 
 const ctx = document.getElementById("myChart");
 
@@ -55,7 +56,7 @@ animation:false
 
 // Live updates
 
-readingsRef.on("value", (snapshot)=>{
+readingsRef.on("value", function(snapshot){
 
 let data = snapshot.val();
 

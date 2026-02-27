@@ -77,9 +77,7 @@ function plot(id,timestamps,data,label){
 
 const t0=timestamps[0];
 
-const time = timestamps.map(x =>
-Math.floor(x - t0)
-);
+const time = Math.floor(timestamps.map(x =>(x - t0)));
 
 
 new Chart(

@@ -5,6 +5,10 @@ import { getDatabase, ref, get }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 
+/**********************
+ Firebase Config
+**********************/
+
 const firebaseConfig = {
 
 apiKey: "AIzaSyDXBV-8rXET5-OSKr6fG9FW3m6IVw1Ujsk",
@@ -20,26 +24,28 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 
+/**********************
+ Load Latest Session
+**********************/
 
 loadLatest();
 
 
-
 async function loadLatest(){
 
-document.getElementById("status").innerHTML=
+document.getElementById("status").innerHTML =
 "Loading latest session...";
 
 
 const snapshot =
 await get(ref(db,"/"));
 
-const data=snapshot.val();
+const data = snapshot.val();
 
 
 if(!data){
 
-document.getElementById("status").innerHTML=
+document.getElementById("status").innerHTML =
 "No sessions found";
 
 return;
@@ -47,20 +53,24 @@ return;
 }
 
 
-const sessions=
+/* Sort session names */
+
+const sessions =
 Object.keys(data).sort();
 
 
-const latest=
+const latest =
 sessions[sessions.length-1];
 
 
-document.getElementById("status").innerHTML=
+document.getElementById("status").innerHTML =
 
-"Latest Session: "+latest;
+"Latest Session: " + latest;
 
 
-const s=data[latest];
+/* Extract session */
+
+const s = data[latest];
 
 
 plot("h2oChart",s.timestamps,s.h2o,"H₂O");
@@ -73,11 +83,32 @@ plot("coChart",s.timestamps,s.co,"CO");
 
 
 
+/**********************
+ Plot Function
+**********************/
+
 function plot(id,timestamps,data,label){
 
-const t0=timestamps[0];
+/* Offset timestamps */
 
-const time = Math.floor(timestamps.map(x =>(x - t0)));
+const t0 = timestamps[0];
+
+
+/* Integer seconds */
+
+const seconds = timestamps.map(
+x => Math.floor(x - t0)
+);
+
+
+/* Convert to XY points */
+
+const points = seconds.map((t,i)=>({
+
+x: t,
+y: data[i]
+
+}));
 
 
 new Chart(
@@ -85,21 +116,22 @@ new Chart(
 document.getElementById(id),
 
 {
+
 type:'line',
 
 data:{
-
-labels:time,
 
 datasets:[{
 
 label:label,
 
-data:data,
+data:points,
 
 borderWidth:2,
 
-pointRadius:0
+pointRadius:0,
+
+tension:0
 
 }]
 
@@ -111,33 +143,60 @@ responsive:true,
 
 maintainAspectRatio:false,
 
+parsing:false,
+
+
 plugins:{
+
 legend:{
 labels:{
 color:'white'
 }
 }
+
 },
+
 
 scales:{
 
 x:{
-ticks:{color:'white'},
+
+type:'linear',
+
+ticks:{
+
+color:'white',
+
+stepSize:1,
+
+precision:0,
+
+callback: function(value){
+return Math.floor(value);
+}
+
+},
+
 title:{
 display:true,
 text:"Seconds",
 color:'white'
 }
+
 },
 
+
 y:{
-ticks:{color:'white'},
+
+ticks:{
+color:'white'
+},
+
 title:{
 display:true,
 text:"ADC",
 color:'white'
 }
-}
 
 }
 
@@ -145,6 +204,6 @@ color:'white'
 
 }
 
-);
+});
 
 }

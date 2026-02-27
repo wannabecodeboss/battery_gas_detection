@@ -1,11 +1,7 @@
-import { initializeApp }
+import { initializeApp } 
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-import {
-getDatabase,
-ref,
-get
-}
+import { getDatabase, ref, get }
 from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 
@@ -19,23 +15,36 @@ databaseURL:
 };
 
 
-const app=initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
-const db=getDatabase(app);
+const db = getDatabase(app);
+
 
 
 loadLatest();
 
 
+
 async function loadLatest(){
 
 document.getElementById("status").innerHTML=
-"Fetching sessions...";
+"Loading latest session...";
 
-const snapshot=
+
+const snapshot =
 await get(ref(db,"/"));
 
 const data=snapshot.val();
+
+
+if(!data){
+
+document.getElementById("status").innerHTML=
+"No sessions found";
+
+return;
+
+}
 
 
 const sessions=
@@ -54,9 +63,9 @@ document.getElementById("status").innerHTML=
 const s=data[latest];
 
 
-plot("h2oChart",s.timestamps,s.h2o,"H2O");
+plot("h2oChart",s.timestamps,s.h2o,"H₂O");
 
-plot("co2Chart",s.timestamps,s.co2,"CO2");
+plot("co2Chart",s.timestamps,s.co2,"CO₂");
 
 plot("coChart",s.timestamps,s.co,"CO");
 
@@ -88,7 +97,7 @@ label:label,
 
 data:data,
 
-borderWidth:1,
+borderWidth:2,
 
 pointRadius:0
 
@@ -102,19 +111,31 @@ responsive:true,
 
 maintainAspectRatio:false,
 
+plugins:{
+legend:{
+labels:{
+color:'white'
+}
+}
+},
+
 scales:{
 
 x:{
+ticks:{color:'white'},
 title:{
 display:true,
-text:"Seconds"
+text:"Seconds",
+color:'white'
 }
 },
 
 y:{
+ticks:{color:'white'},
 title:{
 display:true,
-text:"ADC"
+text:"ADC",
+color:'white'
 }
 }
 

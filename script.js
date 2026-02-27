@@ -1,81 +1,129 @@
-// Firebase config
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import {
+getDatabase,
+ref,
+get
+}
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+
 const firebaseConfig = {
 
 apiKey: "AIzaSyDXBV-8rXET5-OSKr6fG9FW3m6IVw1Ujsk",
 
 databaseURL:
-"https://battery-gas-detection-default-rtdb.asia-southeast1.firebasedatabase.app"
+"https://battery-gas-detection-default-rtdb.asia-southeast1.firebasedatabase.app/"
 
 };
 
-// Initialize Firebase
 
-firebase.initializeApp(firebaseConfig);
+const app=initializeApp(firebaseConfig);
 
-
-const db = firebase.database();
-
-const readingsRef = db.ref("readings");
+const db=getDatabase(app);
 
 
-// Chart
+loadLatest();
 
-const ctx = document.getElementById("myChart");
 
-let chart = new Chart(ctx, {
+async function loadLatest(){
 
-type: "line",
+document.getElementById("status").innerHTML=
+"Fetching sessions...";
 
-data: {
+const snapshot=
+await get(ref(db,"/"));
 
-labels: [],
+const data=snapshot.val();
 
-datasets: [
 
-{
+const sessions=
+Object.keys(data).sort();
 
-label: "Sensor Value",
 
-data: [],
+const latest=
+sessions[sessions.length-1];
+
+
+document.getElementById("status").innerHTML=
+
+"Latest Session: "+latest;
+
+
+const s=data[latest];
+
+
+plot("h2oChart",s.timestamps,s.h2o,"H2O");
+
+plot("co2Chart",s.timestamps,s.co2,"CO2");
+
+plot("coChart",s.timestamps,s.co,"CO");
 
 }
 
-]
+
+
+function plot(id,timestamps,data,label){
+
+const t0=timestamps[0];
+
+const time=timestamps.map(x=>x-t0);
+
+
+new Chart(
+
+document.getElementById(id),
+
+{
+type:'line',
+
+data:{
+
+labels:time,
+
+datasets:[{
+
+label:label,
+
+data:data,
+
+borderWidth:1,
+
+pointRadius:0
+
+}]
 
 },
 
-options: {
+options:{
 
-animation:false
+responsive:true,
+
+maintainAspectRatio:false,
+
+scales:{
+
+x:{
+title:{
+display:true,
+text:"Seconds"
+}
+},
+
+y:{
+title:{
+display:true,
+text:"ADC"
+}
+}
 
 }
 
-});
-
-
-
-// Live updates
-
-readingsRef.on("value", function(snapshot){
-
-let data = snapshot.val();
-
-let labels = [];
-
-let values = [];
-
-for(let key in data){
-
-labels.push(key);
-
-values.push(data[key]);
+}
 
 }
 
-chart.data.labels = labels;
+);
 
-chart.data.datasets[0].data = values;
-
-chart.update();
-
-});
+}

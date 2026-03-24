@@ -31,12 +31,12 @@ let charts = [];
 
 
 // ==============================
-// INIT (after DOM loads)
+// WAIT FOR DOM (bulletproof)
 // ==============================
 
-window.onload = () => {
+document.addEventListener("DOMContentLoaded", () => {
     loadSessions();
-};
+});
 
 
 // ==============================
@@ -47,22 +47,34 @@ async function loadSessions(){
 
 try {
 
-document.getElementById("status").innerHTML =
-"Loading sessions...";
+const statusEl = document.getElementById("status");
+const select = document.getElementById("sessionSelect");
+
+// 🔴 Hard fail if UI missing
+if (!select) {
+    console.error("❌ sessionSelect dropdown not found in HTML");
+    return;
+}
+
+if (statusEl)
+    statusEl.innerHTML = "Loading sessions...";
 
 const snapshot = await get(ref(db,"/"));
 const data = snapshot.val();
 
+// 🔍 DEBUG
+console.log("Firebase root data:", data);
+
 if(!data){
-    document.getElementById("status").innerHTML =
-    "No sessions found";
+    if (statusEl)
+        statusEl.innerHTML = "No sessions found";
     return;
 }
 
-// Sort sessions (latest last)
+// Sort sessions
 const sessions = Object.keys(data).sort();
 
-const select = document.getElementById("sessionSelect");
+console.log("Sessions found:", sessions);
 
 // Clear dropdown
 select.innerHTML = "";
@@ -87,13 +99,15 @@ select.onchange = () => {
     loadSession(data, select.value);
 };
 
-document.getElementById("status").innerHTML =
-"Loaded sessions";
+if (statusEl)
+    statusEl.innerHTML = "Loaded sessions";
 
 } catch(e) {
-    console.error("Load error:", e);
-    document.getElementById("status").innerHTML =
-    "Error loading sessions";
+    console.error("❌ Load error:", e);
+
+    const statusEl = document.getElementById("status");
+    if (statusEl)
+        statusEl.innerHTML = "Error loading sessions";
 }
 
 }
@@ -105,6 +119,8 @@ document.getElementById("status").innerHTML =
 
 function loadSession(data, sessionName){
 
+const statusEl = document.getElementById("status");
+
 const s = data[sessionName];
 
 if(!s){
@@ -112,8 +128,8 @@ if(!s){
     return;
 }
 
-document.getElementById("status").innerHTML =
-"Viewing: " + sessionName;
+if (statusEl)
+    statusEl.innerHTML = "Viewing: " + sessionName;
 
 // Safe extraction
 const timestamps = s.timestamps || [];
@@ -152,13 +168,18 @@ function plot(id, timestamps, data, label){
 
 const canvas = document.getElementById(id);
 
-// Validate canvas
-if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
-    console.error("Invalid canvas:", id);
+// 🔴 Validate canvas
+if (!canvas) {
+    console.error("Canvas not found:", id);
     return;
 }
 
-// Prevent crashes
+if (!(canvas instanceof HTMLCanvasElement)) {
+    console.error("Not a canvas:", id);
+    return;
+}
+
+// 🔴 Prevent crash
 if (!timestamps || !data || timestamps.length === 0 || data.length === 0) {
     console.warn("Skipping plot:", label);
     return;
@@ -172,7 +193,7 @@ const points = [];
 
 for(let i = 0; i < n; i++){
     points.push({
-        x: timestamps[i],   // already in seconds from ESP
+        x: timestamps[i],   // already seconds from ESP
         y: data[i]
     });
 }

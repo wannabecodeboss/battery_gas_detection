@@ -24,43 +24,51 @@ const db = getDatabase(app);
 
 
 // ==============================
-// Load Latest Session
+// INIT (after DOM loads)
 // ==============================
 
-loadLatest();
+window.onload = () => {
+    loadLatest();
+};
+
+
+// ==============================
+// LOAD LATEST SESSION
+// ==============================
 
 async function loadLatest(){
 
 try {
 
-document.getElementById("status").innerHTML =
-"Loading latest session...";
+const statusEl = document.getElementById("status");
+
+if (statusEl)
+    statusEl.innerHTML = "Loading latest session...";
 
 const snapshot = await get(ref(db,"/"));
 const data = snapshot.val();
 
 if(!data){
-    document.getElementById("status").innerHTML =
-    "No sessions found";
+    if (statusEl)
+        statusEl.innerHTML = "No sessions found";
     return;
 }
 
 // Sort sessions
 const sessions = Object.keys(data).sort();
-const latest = sessions[sessions.length-1];
+const latest = sessions[sessions.length - 1];
 
-document.getElementById("status").innerHTML =
-"Latest Session: " + latest;
+if (statusEl)
+    statusEl.innerHTML = "Latest Session: " + latest;
 
 const s = data[latest];
 
-// 🔥 SAFE extraction (prevents crash)
+// Safe extraction
 const timestamps = s.timestamps || [];
 const h2  = s.h2  || [];
 const co2 = s.co2 || [];
 const co  = s.co  || [];
 
-// Debug log (very useful)
 console.log("Session data:", s);
 
 // Plot
@@ -70,42 +78,51 @@ plot("coChart", timestamps, co, "CO");
 
 } catch(e) {
     console.error("Load error:", e);
-    document.getElementById("status").innerHTML =
-    "Error loading data";
+
+    const statusEl = document.getElementById("status");
+    if (statusEl)
+        statusEl.innerHTML = "Error loading data";
 }
 
 }
 
 
 // ==============================
-// Plot Function
+// PLOT FUNCTION
 // ==============================
 
 function plot(id, timestamps, data, label){
 
-// 🔴 Prevent crash
+const canvas = document.getElementById(id);
+
+// Validate canvas
+if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+    console.error("Invalid canvas:", id);
+    return;
+}
+
+// Prevent crash
 if (!timestamps || !data || timestamps.length === 0 || data.length === 0) {
     console.warn("Skipping plot:", label);
     return;
 }
 
-// 🔴 Ensure same length
+// Ensure equal length
 const n = Math.min(timestamps.length, data.length);
 
-// 🔥 Direct use (ESP timestamps already in seconds)
+// Build points
 const points = [];
 
 for(let i = 0; i < n; i++){
     points.push({
-        x: timestamps[i],
+        x: timestamps[i],   // ESP time (seconds)
         y: data[i]
     });
 }
 
 // Create chart
-new Chart(
-document.getElementById(id),
-{
+new Chart(canvas, {
+
 type:'line',
 
 data:{
@@ -150,5 +167,6 @@ color:'white'
 }
 }
 }
+
 });
 }

@@ -24,17 +24,31 @@ const db = getDatabase(app);
 
 
 // ==============================
-// Load Latest Session
+// GLOBAL CHART STORAGE
 // ==============================
 
-loadLatest();
+let charts = [];
 
-async function loadLatest(){
+
+// ==============================
+// INIT (after DOM loads)
+// ==============================
+
+window.onload = () => {
+    loadSessions();
+};
+
+
+// ==============================
+// LOAD ALL SESSIONS
+// ==============================
+
+async function loadSessions(){
 
 try {
 
 document.getElementById("status").innerHTML =
-"Loading latest session...";
+"Loading sessions...";
 
 const snapshot = await get(ref(db,"/"));
 const data = snapshot.val();
@@ -45,67 +59,127 @@ if(!data){
     return;
 }
 
-// Sort sessions
+// Sort sessions (latest last)
 const sessions = Object.keys(data).sort();
-const latest = sessions[sessions.length-1];
+
+const select = document.getElementById("sessionSelect");
+
+// Clear dropdown
+select.innerHTML = "";
+
+// Populate dropdown
+sessions.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    select.appendChild(opt);
+});
+
+// Default → latest
+const latest = sessions[sessions.length - 1];
+select.value = latest;
+
+// Load latest session
+loadSession(data, latest);
+
+// Change handler
+select.onchange = () => {
+    loadSession(data, select.value);
+};
 
 document.getElementById("status").innerHTML =
-"Latest Session: " + latest;
+"Loaded sessions";
 
-const s = data[latest];
+} catch(e) {
+    console.error("Load error:", e);
+    document.getElementById("status").innerHTML =
+    "Error loading sessions";
+}
 
-// 🔥 SAFE extraction (prevents crash)
+}
+
+
+// ==============================
+// LOAD SINGLE SESSION
+// ==============================
+
+function loadSession(data, sessionName){
+
+const s = data[sessionName];
+
+if(!s){
+    console.error("Session not found:", sessionName);
+    return;
+}
+
+document.getElementById("status").innerHTML =
+"Viewing: " + sessionName;
+
+// Safe extraction
 const timestamps = s.timestamps || [];
 const h2  = s.h2  || [];
 const co2 = s.co2 || [];
 const co  = s.co  || [];
 
-// Debug log (very useful)
 console.log("Session data:", s);
+
+// Clear previous charts
+clearCharts();
 
 // Plot
 plot("h2Chart", timestamps, h2, "H₂");
 plot("co2Chart", timestamps, co2, "CO₂");
 plot("coChart", timestamps, co, "CO");
 
-} catch(e) {
-    console.error("Load error:", e);
-    document.getElementById("status").innerHTML =
-    "Error loading data";
-}
-
 }
 
 
 // ==============================
-// Plot Function
+// CLEAR OLD CHARTS
+// ==============================
+
+function clearCharts(){
+    charts.forEach(c => c.destroy());
+    charts = [];
+}
+
+
+// ==============================
+// PLOT FUNCTION
 // ==============================
 
 function plot(id, timestamps, data, label){
 
-// 🔴 Prevent crash
+const canvas = document.getElementById(id);
+
+// Validate canvas
+if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
+    console.error("Invalid canvas:", id);
+    return;
+}
+
+// Prevent crashes
 if (!timestamps || !data || timestamps.length === 0 || data.length === 0) {
     console.warn("Skipping plot:", label);
     return;
 }
 
-// 🔴 Ensure same length
+// Ensure equal length
 const n = Math.min(timestamps.length, data.length);
 
-// 🔥 Direct use (ESP timestamps already in seconds)
+// Build points
 const points = [];
 
 for(let i = 0; i < n; i++){
     points.push({
-        x: timestamps[i],
+        x: timestamps[i],   // already in seconds from ESP
         y: data[i]
     });
 }
 
 // Create chart
-new Chart(
-document.getElementById(id),
-{
+const chart = new Chart(canvas, {
+
 type:'line',
 
 data:{
@@ -150,5 +224,10 @@ color:'white'
 }
 }
 }
+
 });
+
+// Store chart reference
+charts.push(chart);
+
 }

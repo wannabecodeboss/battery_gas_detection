@@ -24,160 +24,64 @@ const db = getDatabase(app);
 
 
 // ==============================
-// GLOBAL CHART STORAGE
+// Load Latest Session
 // ==============================
 
-let charts = [];
+loadLatest();
 
-
-// ==============================
-// WAIT FOR DOM (bulletproof)
-// ==============================
-
-document.addEventListener("DOMContentLoaded", () => {
-    loadSessions();
-});
-
-
-// ==============================
-// LOAD ALL SESSIONS
-// ==============================
-
-async function loadSessions(){
+async function loadLatest(){
 
 try {
 
-const statusEl = document.getElementById("status");
-const select = document.getElementById("sessionSelect");
-
-// 🔴 Hard fail if UI missing
-if (!select) {
-    console.error("❌ sessionSelect dropdown not found in HTML");
-    return;
-}
-
-if (statusEl)
-    statusEl.innerHTML = "Loading sessions...";
+document.getElementById("status").innerHTML =
+"Loading latest session...";
 
 const snapshot = await get(ref(db,"/"));
 const data = snapshot.val();
 
-// 🔍 DEBUG
-console.log("Firebase root data:", data);
-
 if(!data){
-    if (statusEl)
-        statusEl.innerHTML = "No sessions found";
+    document.getElementById("status").innerHTML =
+    "No sessions found";
     return;
 }
 
 // Sort sessions
 const sessions = Object.keys(data).sort();
+const latest = sessions[sessions.length-1];
 
-console.log("Sessions found:", sessions);
+document.getElementById("status").innerHTML =
+"Latest Session: " + latest;
 
-// Clear dropdown
-select.innerHTML = "";
+const s = data[latest];
 
-// Populate dropdown
-sessions.forEach(s => {
-    const opt = document.createElement("option");
-    opt.value = s;
-    opt.textContent = s;
-    select.appendChild(opt);
-});
-
-// Default → latest
-const latest = sessions[sessions.length - 1];
-select.value = latest;
-
-// Load latest session
-loadSession(data, latest);
-
-// Change handler
-select.onchange = () => {
-    loadSession(data, select.value);
-};
-
-if (statusEl)
-    statusEl.innerHTML = "Loaded sessions";
-
-} catch(e) {
-    console.error("❌ Load error:", e);
-
-    const statusEl = document.getElementById("status");
-    if (statusEl)
-        statusEl.innerHTML = "Error loading sessions";
-}
-
-}
-
-
-// ==============================
-// LOAD SINGLE SESSION
-// ==============================
-
-function loadSession(data, sessionName){
-
-const statusEl = document.getElementById("status");
-
-const s = data[sessionName];
-
-if(!s){
-    console.error("Session not found:", sessionName);
-    return;
-}
-
-if (statusEl)
-    statusEl.innerHTML = "Viewing: " + sessionName;
-
-// Safe extraction
+// 🔥 SAFE extraction (prevents crash)
 const timestamps = s.timestamps || [];
 const h2  = s.h2  || [];
 const co2 = s.co2 || [];
 const co  = s.co  || [];
 
+// Debug log (very useful)
 console.log("Session data:", s);
-
-// Clear previous charts
-clearCharts();
 
 // Plot
 plot("h2Chart", timestamps, h2, "H₂");
 plot("co2Chart", timestamps, co2, "CO₂");
 plot("coChart", timestamps, co, "CO");
 
+} catch(e) {
+    console.error("Load error:", e);
+    document.getElementById("status").innerHTML =
+    "Error loading data";
+}
+
 }
 
 
 // ==============================
-// CLEAR OLD CHARTS
-// ==============================
-
-function clearCharts(){
-    charts.forEach(c => c.destroy());
-    charts = [];
-}
-
-
-// ==============================
-// PLOT FUNCTION
+// Plot Function
 // ==============================
 
 function plot(id, timestamps, data, label){
-
-const canvas = document.getElementById(id);
-
-// 🔴 Validate canvas
-if (!canvas) {
-    console.error("Canvas not found:", id);
-    return;
-}
-
-if (!(canvas instanceof HTMLCanvasElement)) {
-    console.error("Not a canvas:", id);
-    return;
-}
 
 // 🔴 Prevent crash
 if (!timestamps || !data || timestamps.length === 0 || data.length === 0) {
@@ -185,22 +89,23 @@ if (!timestamps || !data || timestamps.length === 0 || data.length === 0) {
     return;
 }
 
-// Ensure equal length
+// 🔴 Ensure same length
 const n = Math.min(timestamps.length, data.length);
 
-// Build points
+// 🔥 Direct use (ESP timestamps already in seconds)
 const points = [];
 
 for(let i = 0; i < n; i++){
     points.push({
-        x: timestamps[i],   // already seconds from ESP
+        x: timestamps[i],
         y: data[i]
     });
 }
 
 // Create chart
-const chart = new Chart(canvas, {
-
+new Chart(
+document.getElementById(id),
+{
 type:'line',
 
 data:{
@@ -245,10 +150,5 @@ color:'white'
 }
 }
 }
-
 });
-
-// Store chart reference
-charts.push(chart);
-
 }

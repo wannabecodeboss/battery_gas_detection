@@ -73,7 +73,7 @@ document.getElementById("status").innerHTML =
 const s = data[latest];
 
 
-plot("h2oChart",s.timestamps,s.h2o,"H₂O");
+plot("h2Chart", s.timestamps, s.h2, "H₂");
 
 plot("co2Chart",s.timestamps,s.co2,"CO₂");
 
@@ -89,25 +89,11 @@ plot("coChart",s.timestamps,s.co,"CO");
 
 function plot(id,timestamps,data,label){
 
-/* Offset timestamps */
-
-const t0 = timestamps[0];
-
-
-/* Integer seconds */
-
-const seconds = timestamps.map(
-x => Math.floor(x - t0)
-);
-
-
 /* Convert to XY points */
 
-const points = seconds.map((t,i)=>({
-
-x: t,
-y: data[i]
-
+const points = timestamps.map((t,i)=>({
+    x: t,
+    y: data[i]
 }));
 
 
